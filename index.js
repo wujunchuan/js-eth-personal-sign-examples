@@ -16,22 +16,22 @@ function connect() {
     ethereum.enable().catch(console.error);
   }
 }
-ethSignButton.addEventListener("click", function(event) {
-  event.preventDefault();
-  var msg =
-    "0x879a053d4800c6354e76c7985a865d2922c82fb5b3f4577b2fe08b998954f2e0";
-  var from = web3.eth.accounts[0];
-  if (!from) return connect();
-  web3.eth.sign(from, msg, function(err, result) {
-    if (err) return console.error(err);
-    console.log("SIGNED:" + result);
-  });
-});
 
-personalSignButton.addEventListener("click", function(event) {
-  event.preventDefault();
-  var text = terms;
-  var msg = ethUtil.bufferToHex(new Buffer(text, "utf8"));
+ethSignButton.addEventListener('click', function(event) {
+  event.preventDefault()
+  var msgHash = ethUtil.keccak256('An amazing message, for use with MetaMask!')
+  var from = web3.eth.accounts[0]
+  if (!from) return connect()
+  web3.eth.sign(from, msgHash, function (err, result) {
+    if (err) return console.error(err)
+    console.log('SIGNED:' + result)
+  })
+})
+
+personalSignButton.addEventListener('click', function(event) {
+  event.preventDefault()
+  var text = terms
+  var msg = ethUtil.bufferToHex(new Buffer(text, 'utf8'))
   // var msg = '0x1' // hexEncode(text)
   console.log(msg);
   var from = web3.eth.accounts[0];
@@ -270,101 +270,85 @@ signTypedDataButton.addEventListener("click", function(event) {
 signTypedDataV3Button.addEventListener("click", function(event) {
   event.preventDefault();
 
-  web3.currentProvider.sendAsync(
-    {
-      method: "net_version",
-      params: [],
-      jsonrpc: "2.0"
+signTypedDataV4Button.addEventListener('click', function(event) {
+  event.preventDefault()
+
+  const msgParams = JSON.stringify({
+    domain: {
+      chainId: 1,
+      name: 'Ether Mail',
+      verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
+      version: '1'
     },
-    function(err, result) {
-      const netId = result.result;
-      const msgParams = JSON.stringify({
-        types: {
-          EIP712Domain: [
-            { name: "name", type: "string" },
-            { name: "version", type: "string" },
-            { name: "chainId", type: "uint256" },
-            { name: "verifyingContract", type: "address" }
-          ],
-          Person: [
-            { name: "name", type: "string" },
-            { name: "wallet", type: "address" }
-          ],
-          Mail: [
-            { name: "from", type: "Person" },
-            { name: "to", type: "Person" },
-            { name: "contents", type: "string" }
-          ]
-        },
-        primaryType: "Mail",
-        domain: {
-          name: "Ether Mail",
-          version: "1",
-          chainId: netId,
-          verifyingContract: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"
-        },
-        message: {
-          from: {
-            name: "Cow",
-            wallet: "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826"
-          },
-          to: {
-            name: "Bob",
-            wallet: "0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"
-          },
-          contents: "Hello, Bob!"
-        }
-      });
-
-      var from = web3.eth.accounts[0];
-
-      console.log(
-        "CLICKED, SENDING PERSONAL SIGN REQ",
-        "from",
-        from,
-        msgParams
-      );
-      var params = [from, msgParams];
-      console.dir(params);
-      var method = "eth_signTypedData_v3";
-
-      web3.currentProvider.sendAsync(
+    message: {
+      contents: 'Hello, Bob!',
+      from: {
+        name: 'Cow',
+        wallets: [
+          '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
+          '0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF'
+        ]
+      },
+      to: [
         {
-          method,
-          params,
-          from
-        },
-        function(err, result) {
-          if (err) return console.dir(err);
-          if (result.error) {
-            alert(result.error.message);
-          }
-          if (result.error) return console.error("ERROR", result);
-          console.log("TYPED SIGNED:" + JSON.stringify(result.result));
-
-          const recovered = sigUtil.recoverTypedSignature({
-            data: JSON.parse(msgParams),
-            sig: result.result
-          });
-
-          if (
-            ethUtil.toChecksumAddress(recovered) ===
-            ethUtil.toChecksumAddress(from)
-          ) {
-            alert("Successfully ecRecovered signer as " + from);
-          } else {
-            alert(
-              "Failed to verify signer when comparing " + result + " to " + from
-            );
-          }
+          name: 'Bob',
+          wallets: [
+            '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+            '0xB0BdaBea57B0BDABeA57b0bdABEA57b0BDabEa57',
+            '0xB0B0b0b0b0b0B000000000000000000000000000'
+          ]
         }
-      );
+      ]
+    },
+    primaryType: 'Mail',
+    types: {
+      EIP712Domain: [
+        { name: 'name', type: 'string' },
+        { name: 'version', type: 'string' },
+        { name: 'chainId', type: 'uint256' },
+        { name: 'verifyingContract', type: 'address' }
+      ],
+      Group: [{ name: 'name', type: 'string' }, { name: 'members', type: 'Person[]' }],
+      Mail: [
+        { name: 'from', type: 'Person' },
+        { name: 'to', type: 'Person[]' },
+        { name: 'contents', type: 'string' }
+      ],
+      Person: [{ name: 'name', type: 'string' }, { name: 'wallets', type: 'address[]' }]
     }
-  );
-});
+  });
 
-ethjsSignTypedDataButton.addEventListener("click", function(event) {
-  event.preventDefault();
+  var from = web3.eth.accounts[0]
+
+  var params = [from, msgParams]
+  var method = 'eth_signTypedData_v4'
+
+  web3.currentProvider.sendAsync({
+    method,
+    params,
+    from,
+  }, function (err, result) {
+    if (err) return console.dir(err)
+    if (result.error) {
+      alert(result.error.message)
+    }
+    if (result.error) return console.error('ERROR', result)
+    console.log('TYPED SIGNED:' + JSON.stringify(result.result))
+
+    const recovered = sigUtil.recoverTypedSignature_v4({ data: JSON.parse(msgParams), sig: result.result })
+
+    if (ethUtil.toChecksumAddress(recovered) === ethUtil.toChecksumAddress(from)) {
+      alert('Successfully recovered signer as ' + from)
+    } else {
+      alert('Failed to verify signer when comparing ' + result + ' to ' + from)
+    }
+
+  })
+
+})
+
+ethjsSignTypedDataButton.addEventListener('click', function(event) {
+  event.preventDefault()
 
   const msgParams = [
     {
